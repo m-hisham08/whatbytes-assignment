@@ -1,120 +1,102 @@
 {% extends 'base.html' %} {% load static %} {% block content %}
+<div class="row justify-content-center align-items-center min-vh-100">
+  <div class="col-md-6 col-lg-4">
+    <div class="card shadow-lg">
+      <div class="card-body p-5">
+        <img
+          src="https://cdn.prod.website-files.com/65cb431fbaab685eab1f5470/65cb445e7204d21122a75be0_WHATBYTESLOGO.png"
+          class="card-img-top mb-4"
+          alt="WhatBytes Logo"
+        />
 
-<div class="row">
-  <div class="col-md-3"></div>
-  <div class="col-md-6">
-    <div class="row">
-      <div class="col-md-2"></div>
-      <div class="col-md-8">
-        <div class="card mt-5">
-          <img
-            src="https://cdn.prod.website-files.com/65cb431fbaab685eab1f5470/65cb445e7204d21122a75be0_WHATBYTESLOGO.png"
-            class="card-img-top"
-            alt="..."
-          />
-          <div class="card-body">
-            <!-- <h5 class="card-title text-muted">
-              Sign up to see photos and videos from your friends.
-            </h5>
-            <a href="" class="btn btn-sm btn-block btn-primary"
-              ><i class="fa fa-facebook"></i> Login with Facebook</a
-            > -->
-
-            <div class="row">
-              <div class="col-md">
-                <hr />
-              </div>
-            </div>
-
-            {% if messages %} {% for message in messages %}
-            <div class="alert alert-{{message.tags}}">{{message}}</div>
-            {% endfor %} {% endif %}
-
-            <form action="{% url 'register' %}" method="post">
-              {% csrf_token %}
-
-              <div class="form-group">
-                <input
-                  class="form-control form-control-sm"
-                  type="email"
-                  name="email"
-                  value="{{data.email}}"
-                  placeholder="Email"
-                />
-              </div>
-
-              <div class="form-group">
-                <input
-                  class="form-control form-control-sm"
-                  type="text"
-                  name="name"
-                  value="{{data.name}}"
-                  placeholder="FullName"
-                />
-              </div>
-
-              <div class="form-group">
-                <input
-                  class="form-control form-control-sm"
-                  type="text"
-                  name="username"
-                  value="{{data.username}}"
-                  placeholder="Username"
-                />
-              </div>
-
-              <div class="form-group">
-                <input
-                  class="form-control form-control-sm"
-                  type="password"
-                  name="password"
-                  value=""
-                  placeholder="Password"
-                />
-              </div>
-
-              <div class="form-group">
-                <input
-                  class="form-control form-control-sm"
-                  type="password"
-                  name="password2"
-                  value=""
-                  placeholder="Confirm Password"
-                />
-              </div>
-
-              <input
-                type="submit"
-                value="Register"
-                class="btn btn-sm btn-block btn-primary"
-              />
-            </form>
-
-            <small class="py-3">
-              By signing up, you agree to our Terms , Data Policy and Cookies
-              Policy .
-            </small>
-          </div>
+        {% if messages %} {% for message in messages %}
+        <div
+          class="alert alert-{{ message.tags }} alert-dismissible fade show"
+          role="alert"
+        >
+          {{ message }}
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="alert"
+            aria-label="Close"
+          ></button>
         </div>
+        {% endfor %} {% endif %}
 
-        <div class="card mt-4">
-          <div class="card-body">
-            <p>Already have an account?<a href="#">Login</a></p>
+        <form action="{% url 'register' %}" method="post">
+          {% csrf_token %}
+          <div class="mb-3">
+            <input
+              class="form-control"
+              type="email"
+              name="email"
+              value="{{ data.email }}"
+              placeholder="Email"
+              required
+            />
           </div>
-        </div>
-
-        <div class="card mt-4">
-          <div class="card-body">
-            <p>
-              Forgot Password?
-              <a href="#">Reset it here</a>
-            </p>
+          <div class="mb-3">
+            <input
+              class="form-control"
+              type="text"
+              name="name"
+              value="{{ data.name }}"
+              placeholder="Full Name"
+              required
+            />
           </div>
-        </div>
+          <div class="mb-3">
+            <input
+              class="form-control"
+              type="text"
+              name="username"
+              value="{{ data.username }}"
+              placeholder="Username"
+              required
+            />
+          </div>
+          <div class="mb-3">
+            <input
+              class="form-control"
+              type="password"
+              name="password"
+              placeholder="Password"
+              required
+            />
+          </div>
+          <div class="mb-3">
+            <input
+              class="form-control"
+              type="password"
+              name="password2"
+              placeholder="Confirm Password"
+              required
+            />
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Register</button>
+        </form>
+        <small class="d-block text-center mt-3">
+          By signing up, you agree to our Terms, Data Policy and Cookies Policy.
+        </small>
       </div>
-      <div class="col-md-2"></div>
+    </div>
+    <div class="card mt-3 shadow-sm">
+      <div class="card-body text-center">
+        <p class="mb-0">
+          Already have an account?
+          <a href="{% url 'login' %}" class="text-decoration-none">Login</a>
+        </p>
+      </div>
+    </div>
+    <div class="card mt-3 shadow-sm">
+      <div class="card-body text-center">
+        <p class="mb-0">
+          Forgot Password?
+          <a href="#" class="text-decoration-none">Reset it here</a>
+        </p>
+      </div>
     </div>
   </div>
-  <div class="col-md-3"></div>
 </div>
 {% endblock %}

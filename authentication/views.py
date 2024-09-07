@@ -11,6 +11,7 @@ from .utils import generate_token
 from django.core.mail import EmailMessage
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
+from django.db.models import Q
 
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 
@@ -92,6 +93,34 @@ class LoginView(View):
     def get(self, request):
         return render(request, 'auth/login.html')
     
+    def post(self, request):
+        context = {
+            'data': request.POST,
+            'has_error': False
+        }
+        
+        username_or_email = request.POST.get('username_or_email')
+        password = request.POST.get('password')
+
+        if username_or_email == '':
+            messages.add_message(request, messages.ERROR, 'Email or Username field is required!')
+            context['has_error'] = True
+
+        # Query the user based on email or username
+        user = User.objects.filter(Q(username=username_or_email) | Q(email=username_or_email)).first()
+
+        if user is not None and user.check_password(password):
+            login(request, user)
+            return redirect('dashboard')
+        else:
+            if not context['has_error']:
+                messages.add_message(request, messages.ERROR, 'Bad Credentials')
+                context['has_error'] = True
+        
+        if context['has_error']:
+            return render(request, 'auth/login.html', status=401, context=context)
+
+    
 
 class ActivateAccountView(View):
     def get(self, request, uidb64, token):
@@ -107,3 +136,17 @@ class ActivateAccountView(View):
             messages.add_message(request, messages.SUCCESS, 'Account Activated Successfully!')
             return redirect('login')
         return render(request, 'auth/activate_failed.html', status=401)
+    
+class DashboardView(View):
+    def get(self, request):
+        return render(request, 'dashboard.html')
+    
+class LogoutView(View):
+    def post(self, request):
+        logout(request)
+        messages.add_message(request, messages.SUCCESS,'Logged out successfully!')
+        return redirect('login')
+
+class ProfileView(View):
+    def get(self, request):
+        return render(request, 'profile.html')
