@@ -1,28 +1,37 @@
-from django.shortcuts import render, redirect
-from django.views.generic import View
+import threading
+from django.conf import settings
 from django.contrib import messages
-from validate_email import validate_email
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.contrib.sites.shortcuts import get_current_site
+from django.core.mail import EmailMessage
+from django.db.models import Q
+from django.shortcuts import render, redirect
 from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes, force_str, DjangoUnicodeDecodeError
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.views.generic import View
+from validate_email import validate_email
+
 from .utils import generate_token
-from django.core.mail import EmailMessage
-from django.conf import settings
-from django.contrib.auth import authenticate, login, logout
-from django.db.models import Q
 
-from django.contrib.auth.tokens import PasswordResetTokenGenerator
 
-# Create your views here.
+# using a different thread for sending emails for better UI experience
+class EmailThread(threading.Thread):
+    def __init__(self, email_message):
+        self.email_message = email_message
+        threading.Thread.__init__(self)
+    
+    def run(self):
+        self.email_message.send()
+
 
 class RegistrationView(View):
     def get(self, request):
         return render(request, 'auth/register.html')
 
     def post(self, request):
-
         context = {
             'data': request.POST,
             'has_error': False
@@ -46,11 +55,11 @@ class RegistrationView(View):
             messages.add_message(request, messages.ERROR, 'Please provide a valid email!')
             context['has_error'] = True
 
-        if User.objects.filter(email = email).exists():
+        if User.objects.filter(email=email).exists():
             messages.add_message(request, messages.ERROR, 'Email is already taken! Please use a different email.')
             context['has_error'] = True
 
-        if User.objects.filter(username = username).exists():
+        if User.objects.filter(username=username).exists():
             messages.add_message(request, messages.ERROR, 'Username is already taken! Please use a different username.')
             context['has_error'] = True
 
@@ -62,7 +71,6 @@ class RegistrationView(View):
         user.first_name = full_name
         user.last_name = full_name
         user.is_active = False
-
         user.save()
 
         current_site = get_current_site(request)
@@ -83,12 +91,13 @@ class RegistrationView(View):
             [email]
         )
 
-        email_message.send()
+        EmailThread(email_message).start()
 
         messages.add_message(request, messages.SUCCESS, 'Account created successfully! Please check your inbox for the activation link. Please check your spam folder if you do not see it in your inbox and wait a few minutes before trying again.')
 
         return redirect('login')
-    
+
+
 class LoginView(View):
     def get(self, request):
         return render(request, 'auth/login.html')
@@ -120,37 +129,40 @@ class LoginView(View):
         if context['has_error']:
             return render(request, 'auth/login.html', status=401, context=context)
 
-    
 
 class ActivateAccountView(View):
     def get(self, request, uidb64, token):
         try:
             uid = force_str(urlsafe_base64_decode(uidb64))
-            user=User.objects.get(pk=uid)
+            user = User.objects.get(pk=uid)
         except Exception as identifier:
             user = None
         
         if user is not None and generate_token.check_token(user, token):
-            user.is_active=True
+            user.is_active = True
             user.save()
             messages.add_message(request, messages.SUCCESS, 'Account Activated Successfully!')
             return redirect('login')
         return render(request, 'auth/activate_failed.html', status=401)
-    
+
+
 class DashboardView(View):
     def get(self, request):
         return render(request, 'dashboard.html')
-    
+
+
 class LogoutView(View):
     def post(self, request):
         logout(request)
-        messages.add_message(request, messages.SUCCESS,'Logged out successfully!')
+        messages.add_message(request, messages.SUCCESS, 'Logged out successfully!')
         return redirect('login')
+
 
 class ProfileView(View):
     def get(self, request):
         return render(request, 'profile.html')
-    
+
+
 class RequestResetEmailView(View):
     def get(self, request):
         return render(request, 'auth/request-reset-email.html')
@@ -182,13 +194,14 @@ class RequestResetEmailView(View):
                 [email]
             )
 
-            email_message.send()
-        
+            EmailThread(email_message).start()
+
         # send a generic message anyways to provide no information about users in database
         messages.success(request, 'We have sent you an email with instructions on how to reset your password. '
-                          'Please check your spam folder if you do not see it in your inbox and wait a few minutes before trying again.')
+                         'Please check your spam folder if you do not see it in your inbox and wait a few minutes before trying again.')
 
         return render(request, 'auth/request-reset-email.html')
+
 
 class SetNewPasswordView(View):
     def get(self, request, uidb64, token):
@@ -199,17 +212,14 @@ class SetNewPasswordView(View):
 
         try:
             user_id = force_str(urlsafe_base64_decode(uidb64))
-
             user = User.objects.get(pk=user_id)
 
             if not PasswordResetTokenGenerator().check_token(user, token):
-                messages.info(
-                    request, 'Invalid link! Please request a new one.')
+                messages.info(request, 'Invalid link! Please request a new one.')
                 return render(request, 'auth/request-reset-email.html')
 
         except DjangoUnicodeDecodeError as identifier:
-            messages.success(
-                request, 'Invalid link')
+            messages.success(request, 'Invalid link')
             return render(request, 'auth/request-reset-email.html')
 
         return render(request, 'auth/set-new-password.html', context)
@@ -224,27 +234,22 @@ class SetNewPasswordView(View):
         password = request.POST.get('password')
         password2 = request.POST.get('password2')
         if len(password) < 6:
-            messages.add_message(request, messages.ERROR,
-                                 'Password must contain atleast 8 characters!')
+            messages.add_message(request, messages.ERROR, 'Password must contain atleast 8 characters!')
             context['has_error'] = True
         if password != password2:
-            messages.add_message(request, messages.ERROR,
-                                 'Passwords do not match!')
+            messages.add_message(request, messages.ERROR, 'Passwords do not match!')
             context['has_error'] = True
 
-        if context['has_error'] == True:
+        if context['has_error']:
             return render(request, 'auth/set-new-password.html', context)
 
         try:
             user_id = force_str(urlsafe_base64_decode(uidb64))
-
             user = User.objects.get(pk=user_id)
             user.set_password(password)
             user.save()
 
-            messages.success(
-                request, 'Password reset success, you can login with your new password!')
-
+            messages.success(request, 'Password reset success, you can login with your new password!')
             return redirect('login')
 
         except DjangoUnicodeDecodeError as identifier:

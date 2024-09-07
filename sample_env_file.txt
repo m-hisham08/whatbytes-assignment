@@ -1,0 +1,5 @@
+export EMAIL_HOST=smtp.gmail.com
+export EMAIL_HOST_USER=<Your Email Here>
+export EMAIL_HOST_PASSWORD=<Your App Password>
+export EMAIL_USE_TLS=True
+export EMAIL_PORT=587
