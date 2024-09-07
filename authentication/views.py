@@ -85,7 +85,7 @@ class RegistrationView(View):
 
         email_message.send()
 
-        messages.add_message(request, messages.SUCCESS, 'Account created successfully!')
+        messages.add_message(request, messages.SUCCESS, 'Account created successfully! Please check your inbox for the activation link. Please check your spam folder if you do not see it in your inbox and wait a few minutes before trying again.')
 
         return redirect('login')
     
@@ -150,3 +150,105 @@ class LogoutView(View):
 class ProfileView(View):
     def get(self, request):
         return render(request, 'profile.html')
+    
+class RequestResetEmailView(View):
+    def get(self, request):
+        return render(request, 'auth/request-reset-email.html')
+    
+    def post(self, request):
+        email = request.POST.get("email")
+
+        if not validate_email(email):
+            messages.error(request, 'Please enter a valid email!')
+            return render(request, 'auth/request-reset-email.html')
+        
+        user = User.objects.filter(email=email)
+
+        if user.exists():
+            current_site = get_current_site(request)
+            email_subject = 'Reset Your Password'
+            message = render_to_string(
+                'auth/reset-user-password.html',
+                {
+                    'domain': current_site.domain,
+                    'uid': urlsafe_base64_encode(force_bytes(user[0].pk)),
+                    'token': PasswordResetTokenGenerator().make_token(user[0])
+                }
+            )
+            email_message = EmailMessage(
+                email_subject,
+                message,
+                settings.EMAIL_HOST_USER,
+                [email]
+            )
+
+            email_message.send()
+        
+        # send a generic message anyways to provide no information about users in database
+        messages.success(request, 'We have sent you an email with instructions on how to reset your password. '
+                          'Please check your spam folder if you do not see it in your inbox and wait a few minutes before trying again.')
+
+        return render(request, 'auth/request-reset-email.html')
+
+class SetNewPasswordView(View):
+    def get(self, request, uidb64, token):
+        context = {
+            'uidb64': uidb64,
+            'token': token
+        }
+
+        try:
+            user_id = force_str(urlsafe_base64_decode(uidb64))
+
+            user = User.objects.get(pk=user_id)
+
+            if not PasswordResetTokenGenerator().check_token(user, token):
+                messages.info(
+                    request, 'Invalid link! Please request a new one.')
+                return render(request, 'auth/request-reset-email.html')
+
+        except DjangoUnicodeDecodeError as identifier:
+            messages.success(
+                request, 'Invalid link')
+            return render(request, 'auth/request-reset-email.html')
+
+        return render(request, 'auth/set-new-password.html', context)
+
+    def post(self, request, uidb64, token):
+        context = {
+            'uidb64': uidb64,
+            'token': token,
+            'has_error': False
+        }
+
+        password = request.POST.get('password')
+        password2 = request.POST.get('password2')
+        if len(password) < 6:
+            messages.add_message(request, messages.ERROR,
+                                 'Password must contain atleast 8 characters!')
+            context['has_error'] = True
+        if password != password2:
+            messages.add_message(request, messages.ERROR,
+                                 'Passwords do not match!')
+            context['has_error'] = True
+
+        if context['has_error'] == True:
+            return render(request, 'auth/set-new-password.html', context)
+
+        try:
+            user_id = force_str(urlsafe_base64_decode(uidb64))
+
+            user = User.objects.get(pk=user_id)
+            user.set_password(password)
+            user.save()
+
+            messages.success(
+                request, 'Password reset success, you can login with your new password!')
+
+            return redirect('login')
+
+        except DjangoUnicodeDecodeError as identifier:
+            messages.error(request, 'Something went wrong')
+            return render(request, 'auth/set-new-password.html', context)
+
+        return render(request, 'auth/set-new-password.html', context)
