@@ -29,7 +29,9 @@
             <form action="{% url 'register' %}" method="post">
               {% csrf_token %}
               <h2>Login Page</h2>
-
+              {% if messages %} {% for message in messages %}
+              <div class="alert alert-{{message.tags}}">{{message}}</div>
+              {% endfor %} {% endif %}
               <div class="form-group">
                 <input
                   class="form-control form-control-sm"

@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+from django.contrib import messages
 import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -122,6 +123,16 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS=[
     os.path.join(BASE_DIR, 'static')
 ]
+
+EMAIL_HOST=os.environ.get('EMAIL_HOST')
+EMAIL_HOST_USER=os.environ.get('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD=os.environ.get('EMAIL_HOST_PASSWORD')
+EMAIL_USE_TLS=os.environ.get('EMAIL_USE_TLS')
+EMAIL_PORT=os.environ.get('EMAIL_PORT')
+
+MESSAGE_TAGS={
+    messages.ERROR: 'danger'
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
