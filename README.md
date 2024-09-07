@@ -21,7 +21,7 @@ This project is a Django-based web application with user authentication features
 2. Create a virtual environment:
 
    ```
-   python -m venv venv
+   python3 -m venv venv
    source venv/bin/activate  # On Windows use `venv\Scripts\activate`
    ```
 
@@ -47,7 +47,7 @@ This project is a Django-based web application with user authentication features
 1. Apply migrations:
 
    ```
-   python manage.py migrate
+   python3 manage.py migrate
    ```
 
 2. Load environment variables:
@@ -58,7 +58,7 @@ This project is a Django-based web application with user authentication features
 
 3. Run the development server:
    ```
-   python manage.py runserver
+   python3 manage.py runserver
    ```
 
 ## Features
